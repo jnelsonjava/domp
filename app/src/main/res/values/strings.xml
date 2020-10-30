@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">DOMP</string>
     <string name="domp">DOMP</string>
+    <string name="trigger_music">Trigger Music</string>
 </resources>
