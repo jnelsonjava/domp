@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MediaPlayer mediaPlayer;
 
-    private static final int MY_CODE = 456;
+    private static final int MY_CODE = 456; // temp for testing
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
