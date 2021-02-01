@@ -9,23 +9,54 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
+    class AudioContainer {
+        private final Uri uri;
+        private final String name;
+        private final int duration;
+        private final int size;
+
+        public AudioContainer(Uri uri, String name, int duration, int size) {
+            this.uri = uri;
+            this.name = name;
+            this.duration = duration;
+            this.size = size;
+        }
+
+        @Override
+        public String toString() {
+            return "AudioContainer{" +
+                    "uri=" + uri +
+                    ", name='" + name + '\'' +
+                    ", duration=" + duration +
+                    ", size=" + size +
+                    '}';
+        }
+    }
+    List<AudioContainer> audioList = new ArrayList<>();
+
     private Context context;
     private Activity activity;
 
@@ -36,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int MY_CODE = 456; // temp for testing
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,8 +96,52 @@ public class MainActivity extends AppCompatActivity {
 
         //-----------------------------------------------------
 
-//        System.out.println(MediaStore.Audio.Media.getContentUri(""));
+        System.out.println(MediaStore.Audio.Media.getContentUri(""));
 
+        String[] projection = new String[] {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.DISPLAY_NAME,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.SIZE,
+        };
+        String selection = MediaStore.Audio.Media.DURATION + " >= ?";
+        String[] selectionArgs = new String[] {
+                String.valueOf(TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES))
+        };
+        String sortOrder = MediaStore.Audio.Media.DISPLAY_NAME + " ASC";
+
+
+        try (Cursor cursor = getApplicationContext().getContentResolver().query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                sortOrder
+        )) {
+            int idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+            int nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME);
+            int durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+            int sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE);
+
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(idCol);
+                String name = cursor.getString(nameCol);
+                int duration = cursor.getInt(durationCol);
+                int size = cursor.getInt(sizeCol);
+
+                Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+
+                AudioContainer audioContainer = new AudioContainer(contentUri, name, duration, size);
+                Log.i("MediaRetrieval", audioContainer.toString());
+
+                audioList.add(audioContainer);
+            }
+
+            Log.i("MediaRetrieval", audioList.toString());
+
+        }
+
+//        Log.i("MediaRetrieval", String.valueOf(cursor));
 
 //        ContentResolver contentResolver = getContentResolver();
 //        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
